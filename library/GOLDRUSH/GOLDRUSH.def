@@ -3,13 +3,14 @@ Bootstrap: docker
 From: continuumio/miniconda3
 
 %files
-    FLYE.yml
+    GOLDRUSH.yml
 
 %post
-    /opt/conda/bin/conda env create -f FLYE.yml
+    /opt/conda/bin/conda env create -f GOLDRUSH.yml
     echo ". /opt/conda/etc/profile.d/conda.sh" >> $SINGULARITY_ENVIRONMENT
-    echo "conda activate FLYE" >> $SINGULARITY_ENVIRONMENT
+    echo "conda activate GOLDRUSH" >> $SINGULARITY_ENVIRONMENT
     
-    
+
+
 %runscript
-    flye --help
+    goldrush -h
