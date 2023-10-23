@@ -1,0 +1,132 @@
+import os
+import sys
+import csv
+import argparse
+import subprocess
+
+
+
+def Install(args):
+    
+    # Define Path to SingularityCore Python Package 
+    args.SingularityCorePath = '/'.join(os.path.abspath(__file__).split('/')[:-2]) + '/'
+       
+
+    # Define Path where Singularity SIF containers will be stored.
+    args.SingularitySIFCore = os.path.expanduser("~") + '/' + '.SingularitySIFCore'
+
+
+    # Check to see if SingularitySIFCore has been created at root
+    # which will contain all SIF files. If not create the directory
+    if not os.path.isdir(args.SingularitySIFCore):
+        print(f'Creating {args.SingularitySIFCore} to house containers\n')
+        os.makedirs(args.SingularitySIFCore)
+    else:
+        print(f'Adding containers to existing {args.SingularitySIFCore}\n')
+
+
+    # Define Path to SingularityCore Python Package SIFDirectory.csv
+    SIFDirectoryPath = args.SingularityCorePath+'SIFDirectory.csv'
+
+   
+    # Check if SIF Directory is Present
+    if os.path.isfile(SIFDirectoryPath) == False:
+        print(f'Error: Cant find SIFDirectory. Check Path: {SIFDirectoryPath}')
+        print(f'Terminating')
+        sys.exit()
+    
+
+    # Parse SIF Directory to Dictionary.
+    SIFDict = {}
+    with open(SIFDirectoryPath, mode="r") as file:
+        csv_reader = csv.reader(file)
+        for row in csv_reader:
+            if len(row) >= 2:
+                key, value = row[0], row[1]
+                SIFDict[key] = value
+
+
+
+    # If Container List not False
+    if args.AliasList != False:
+
+        # Loop Over Alias
+        for Alias in args.AliasList.split():
+
+
+            # Check if Container Exists in Working Directory
+            if os.path.isfile(f'{args.SingularitySIFCore}/{Alias}.sif'):
+                print(f'Container pre-built: {Alias}')
+                continue
+
+            # Raise Error if Alias Missing in SIFDict
+            if Alias not in  SIFDict.keys():
+                print(f'Error: missing alias container in SIFDirectory: ({Alias})')
+                sys.exit()
+
+            # Raise Error if Alias Missing in library
+            if os.path.isfile(f'{args.SingularityCorePath}/library/{Alias}/{Alias}.def') == False:
+                print(f'Error: missing container defintion file: ({Alias})')
+                sys.exit()
+
+            
+            # Create Singularity Container
+            CSF = f'''cd {args.SingularityCorePath}/library/{Alias}; \
+            singularity build --fakeroot {args.SingularitySIFCore}/{Alias}.sif ./{Alias}.def'''
+
+
+            subprocess.run(CSF,shell=True)
+
+        
+    return True
+
+
+# Placeholder Function to Expand Script
+def function2(args):
+    print("Running function 2 with arguments:", args)
+
+
+
+
+#################################################################################
+#################################################################################
+#################################################################################
+
+
+# Create the main parser
+parser = argparse.ArgumentParser(description="A script with three subcommands")
+
+# Create subparsers for each function
+subparsers = parser.add_subparsers(title="Subcommands", dest="subcommand")
+
+# (1) Subparser for Install Function 
+parser_function1 = subparsers.add_parser("Install", help="Run Install Function")
+parser_function1.add_argument("--AliasList",default=False,help="List of Container Alias to Install")
+parser_function1.add_argument('--All',help='Install all Container Alias in SIF Directory',action='store_true')
+
+#
+
+# (2) Subparser for function 2
+parser_function2 = subparsers.add_parser("function2", help="Run function 2")
+parser_function2.add_argument("arg2", help="Argument for function 2")
+
+# Subparser for function 3
+parser_function3 = subparsers.add_parser("function3", help="Run function 3")
+parser_function3.add_argument("arg3", help="Argument for function 3")
+
+# Parse the command-line arguments
+args = parser.parse_args()
+
+
+
+
+
+# Call the appropriate function based on the subcommand
+if args.subcommand == "Install":
+    Install(args)
+
+elif args.subcommand == "function2":
+    function2(args.arg2)
+
+else:
+    print("No subcommand provided. Use -h for help.")
