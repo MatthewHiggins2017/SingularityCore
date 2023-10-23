@@ -5,9 +5,15 @@ import hashlib
 import argparse
 import subprocess
 import shutil
-
+import datetime
 
 def PathUpdate(args):
+
+    # Timestamp
+    current_time = datetime.datetime.now()
+    formatted_time = current_time.strftime("%Y-%m-%d %H:%M:%S")
+    print(f'\nSingularityCore: {formatted_time}')
+
 
     # Define Path to SingularityCore Python Package 
     args.SingularityCorePath = '/'.join(os.path.abspath(__file__).split('/')[:-2]) + '/'
@@ -20,24 +26,52 @@ def PathUpdate(args):
     # Check to see if SingularitySIFCore has been created at root
     # which will contain all SIF files. If not create the directory
     if not os.path.isdir(args.SingularitySIFCore):
-        print(f'SingularityCore: Creating {args.SingularitySIFCore} to house containers\n')
+        print(f'SingularityCore: Creating {args.SingularitySIFCore} to house containers')
         os.makedirs(args.SingularitySIFCore)
     else:
-        print(f'SingularityCore: {args.SingularitySIFCore} Exists\n')
+        print(f'SingularityCore: {args.SingularitySIFCore} Exists')
 
     # Obtain list of containers in library
     args.ContainerList = os.listdir(args.SingularityCorePath+'/library')
 
 
 
+def CreateSingularity(args,Alias):
+    """
+    Create Singularity Instance
+    """
+
+    CSF = f'''cd {args.SingularityCorePath}/library/{Alias}; \
+        singularity build --fakeroot {args.SingularitySIFCore}/{Alias}.sif ./{Alias}.def'''
+
+    CSFOut = subprocess.run(CSF,
+                            shell=True,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE,
+                            text=True)
+
+    if CSFOut.returncode == 0:
+        print(f'SingularityCore: {Alias} Container Built Successfully')
+    
+    else:
+        print(f'SingularityCore Error: {Alias}\n',
+              CSFOut.stdout,'\n',
+              CSFOut.stderr,'\n')
+        
+    return CSFOut
+
+
+
+
 def Install(args):
     """
     Function to Install Singularity Containers 
-    Using pre-defined .def files.
+    Using pre-defined .def files from library 
+    if Github folder.
     """
 
-    
-    
+    print('SingularityCore: INSTALL')
+
     # Determine Containers To Install
     if args.AliasList != False:
         ContainersToParse = args.AliasList.split()
@@ -66,17 +100,23 @@ def Install(args):
 
         
         # Create Singularity Container
-        CSF = f'''cd {args.SingularityCorePath}/library/{Alias}; \
-        singularity build --fakeroot {args.SingularitySIFCore}/{Alias}.sif ./{Alias}.def'''
+        print(f'SingularityCore: Creating {Alias} container')
+        CSO = CreateSingularity(args,Alias)
+        if CSO.returncode != 0:
+            print('Terminating')
+            sys.exit()
 
-        subprocess.run(CSF,shell=True)
-
-        
     return True
 
 
 # Placeholder Function to Expand Script
 def AddContainer(args):
+    """
+    Function to add Singularity defintion file 
+    (.def) to library and push to github.  
+    """
+
+    print('SingularityCore: ADD')
 
     # Standardise Path
     if '/' != args.DirectoryPath[-1]:
@@ -88,29 +128,69 @@ def AddContainer(args):
 
     # Check if .def file present in directory
     DefFile = [F for F in FOI if '.def' in F]
-    if len(DefFile)!=0:
+    if len(DefFile)!=1:
         print(f'SingularityCore Error: No single .def file found in {args.DirectoryPath}')
         sys.exit()
 
     # Check if .def file name unique
     DefFile = DefFile[0]
-    ContainerName = DefFile.replace('.def','')
-    if ContainerName in args.ContainerList:
-        print(f'SingularityCore Error: .def name not unique: {ContainerName}')
+    Alias = DefFile.replace('.def','')
+    if Alias in args.ContainerList:
+        print(f'SingularityCore Error: .def Alias not unique: {Alias}')
         sys.exit()
 
     # Create Library
-    os.makedirs(args.SingularityCorePath+f'/library/{ContainerName}')
+    print('SingularityCore: Creating new sub-directory in library')
+    os.makedirs(args.SingularityCorePath+f'/library/{Alias}')
 
     # Copy over all supporting files
     for F in FOI:
+        print(f'SingularityCore: Copying File {F}')
         shutil.copy(args.DirectoryPath+F, 
-                    args.SingularityCorePath+f'/library/{ContainerName}/{F}')
+                    args.SingularityCorePath+f'/library/{Alias}/{F}')
 
 
+    # Confirm Singularity Container can be built
+    # and deployed successfully. If fails delete and 
+    # return to library.
+    print(f'SingularityCore: Testing {Alias} Container Build.')
+    CSO = CreateSingularity(args,Alias)
+    if CSO.returncode != 0:
+            print('SingularityCore Error: Container addition failed cleaning library')
+            shutil.rmtree(args.SingularityCorePath+f'/library/{Alias}/')
+            sys.exit()
+    
 
+    # Add Container Defintion Files to Library
+    GitCommand = f''' cd  ./{args.SingularityCorePath}; \
+                    git checkout -b {Alias} ;
+                    git add ./library/{Alias}/ ;
+                    git commit -m "{Alias}" ;
+                    git push --set-upstream origin {Alias} ;
+                    git checkout main ;
+                    git merge {Alias} ;
+                    git push ;
+                    '''
+    
+    GCO = subprocess.run(GitCommand,
+                         shell=True,
+                         stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE,
+                         text=True)
+    
+    print(GCO.stdout,
+          GCO.stderr)
+        
 
+    # Check Github Status
+    if GCO.returncode == 0:
+        print('SingularityCore: Library successfully added to Github\n')
+    else:
+        print('SingularityCore: Library unable to be added to Github\n',
+              GCO.stdout,
+              GCO.stderr)
 
+    return True
 
 
 
@@ -136,7 +216,7 @@ parser_function1.add_argument('--All',help='Install all Container Alias in SIF D
 
 # (2) Subparser for Add Function
 parser_function2 = subparsers.add_parser("Add", help="Add singularity container to library")
-parser_function2.add_argument("--DirectoryPath", help="Path to directory which contains all necessary files")
+parser_function2.add_argument("--DirectoryPath", help="Path to directory which contains all necessary files",required=True)
 
 
 # Parse the command-line arguments
