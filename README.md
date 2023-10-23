@@ -15,5 +15,8 @@ conda env create -f SingularityCore.yml -name SINGULARITY
 # Activate Singularity Environment.
 conda activate SINGULARITY
 
+# Install SingularityCore python package
+python setup.py install 
+
 
 ```

@@ -164,7 +164,7 @@ def AddContainer(args):
     if args.UpdateGit == True:
 
         # Add Container Defintion Files to Library
-        GitCommand = f''' cd  ./{args.SingularityCorePath}; \
+        GitCommand = f''' cd {args.SingularityCorePath} ; \
                         git checkout -b {Alias} ;
                         git add ./library/{Alias}/ ;
                         git commit -m "{Alias}" ;
@@ -172,7 +172,7 @@ def AddContainer(args):
                         git checkout main ;
                         git merge {Alias} ;
                         git push ;
-                        '''
+                        git push origin --delete {Alias} '''
         
         GCO = subprocess.run(GitCommand,
                             shell=True,
