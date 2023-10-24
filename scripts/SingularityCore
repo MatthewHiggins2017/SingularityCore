@@ -8,6 +8,10 @@ import shutil
 import datetime
 
 def PathUpdate(args):
+    """
+    Function to identify SingularityCore
+    Absolute Path and existing setup.
+    """
 
     # Timestamp
     current_time = datetime.datetime.now()
