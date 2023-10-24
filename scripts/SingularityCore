@@ -195,7 +195,12 @@ def AddContainer(args):
     return True
 
 
+def PrintLibrary(args):
 
+    print('SingularityCore: Singularity Containers in Library')
+    print('\n'.join(args.ContainerList))
+
+    return True
 
 
 
@@ -221,6 +226,9 @@ parser_function2 = subparsers.add_parser("Add", help="Add singularity container 
 parser_function2.add_argument("--DirectoryPath", help="Path to directory which contains all necessary files",required=True)
 parser_function2.add_argument("--UpdateGit", help="Update Github", action='store_true')
 
+# (3) Subparser for Add Function
+parser_function3 = subparsers.add_parser("Library", help="Print singularity containers available to deploy from library")
+
 
 # Parse the command-line arguments
 args = parser.parse_args()
@@ -234,6 +242,9 @@ if args.subcommand == "Install":
 
 elif args.subcommand == "Add":
     AddContainer(args)
+
+elif args.subcommand == "Library":
+    PrintLibrary(args)
 
 else:
     print("No subcommand provided. Use -h for help.")
