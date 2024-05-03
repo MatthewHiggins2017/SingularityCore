@@ -38,7 +38,7 @@ gh repo clone MatthewHiggins2017/SingularityCore
 cd ./SingularityCore
 
 # Create Singularity Environment
-conda env create -f SingularityCore.yml -name SINGULARITY
+conda env create -f SINGULARITY.yml -name SINGULARITY
 
 # Activate Singularity Environment.
 conda activate SINGULARITY
